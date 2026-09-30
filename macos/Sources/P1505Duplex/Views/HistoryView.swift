@@ -11,18 +11,25 @@ struct HistoryView: View {
                 if history.isEmpty {
                     ContentUnavailableView("還沒有列印紀錄", systemImage: "clock.arrow.circlepath")
                 } else {
-                    List {
-                        Section {
-                            ForEach(history) { job in
-                                HistoryRow(job: job)
-                            }
-                        } header: {
-                            let sheets = history.filter { $0.state == .completed }.map(\.sheets).reduce(0, +)
+                    // A plain stack rather than List: List draws its own
+                    // separators, which turn bright white on the popover's
+                    // material; Divider adapts to it.
+                    ScrollView {
+                        let sheets = history.filter { $0.state == .completed }.map(\.sheets).reduce(0, +)
+                        LazyVStack(alignment: .leading, spacing: 0) {
                             Text("最近 \(history.count) 份工作，共印了 \(sheets) 張")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                                .padding(.vertical, 10)
+                            ForEach(history) { job in
+                                Divider()
+                                HistoryRow(job: job)
+                                    .padding(.vertical, 8)
+                            }
                         }
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 8)
                     }
-                    // Let the popover's material show through, like the jobs tab.
-                    .scrollContentBackground(.hidden)
                 }
             } else if model.connected {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)

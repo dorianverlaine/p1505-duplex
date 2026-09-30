@@ -20,6 +20,8 @@ echo "built $APP"
 
 if [ "$1" = "--install" ]; then
     pkill -x P1505Duplex 2>/dev/null || true
+    # Wait for the old instance to exit, or `open` may fail with -600.
+    while pgrep -x P1505Duplex >/dev/null; do sleep 0.2; done
     rm -rf "/Applications/P1505 手動雙面.app"
     cp -R "$APP" /Applications/
     open "/Applications/P1505 手動雙面.app"
