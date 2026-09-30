@@ -24,6 +24,11 @@ if [ "$1" = "--install" ]; then
     while pgrep -x P1505Duplex >/dev/null; do sleep 0.2; done
     rm -rf "/Applications/P1505 手動雙面.app"
     cp -R "$APP" /Applications/
-    open "/Applications/P1505 手動雙面.app"
+    # LaunchServices can still be tearing down the old instance (-600);
+    # retry for a few seconds.
+    for _ in 1 2 3 4 5; do
+        open "/Applications/P1505 手動雙面.app" 2>/dev/null && break
+        sleep 1
+    done
     echo "installed to /Applications"
 fi
