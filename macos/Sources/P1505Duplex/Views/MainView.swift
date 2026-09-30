@@ -41,6 +41,7 @@ struct MainView: View {
                 }
             }
             .frame(height: 460)
+            .clipped()
 
             Divider()
 
@@ -93,9 +94,12 @@ struct PrinterBanner: View {
                    lines: [model.connectionError ?? "", "伺服器：\(model.settings.serverURL)"])
         } else if let snap = model.snapshot {
             if let p = snap.printer {
-                let lines = p.reasons.map(\.text) + (p.message.isEmpty ? [] : [p.message])
+                // The state message is filter progress ("Rendering completed")
+                // unless something is actually wrong, as on the web page.
+                let troubled = !p.reasons.isEmpty || p.state == "stopped"
+                let lines = p.reasons.map(\.text) + (troubled && !p.message.isEmpty ? [p.message] : [])
                     + (p.usbConnected ? [] : ["印表機沒有接上（USB 未連接）"])
-                if !lines.isEmpty || p.state == "stopped" {
+                if !lines.isEmpty || troubled {
                     Banner(style: p.blocking || !p.usbConnected ? .error : .warning, title: "印表機狀態",
                            lines: lines.isEmpty ? ["印表機已停止"] : lines)
                 }

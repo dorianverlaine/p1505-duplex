@@ -83,7 +83,7 @@ struct JobCard: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.background.secondary, in: .rect(cornerRadius: 12))
+        .background(Color.primary.opacity(0.05), in: .rect(cornerRadius: 12))
         .confirmationDialog("取消還沒印的部分並移除這份工作？", isPresented: $confirmRemove) {
             Button("取消並移除", role: .destructive) { model.remove(job.id) }
         }

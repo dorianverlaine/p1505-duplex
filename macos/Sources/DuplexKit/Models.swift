@@ -86,6 +86,12 @@ public struct Reason: Codable, Sendable, Equatable, Hashable {
     public var keyword: String
     public var text: String
     public var severity: Severity
+
+    public init(keyword: String, text: String, severity: Severity) {
+        self.keyword = keyword
+        self.text = text
+        self.severity = severity
+    }
 }
 
 public struct Printer: Codable, Sendable, Equatable {

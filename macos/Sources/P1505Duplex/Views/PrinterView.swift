@@ -7,6 +7,15 @@ struct PrinterView: View {
     @State private var confirmTestPage = false
 
     var body: some View {
+        VStack(spacing: 0) {
+            PrinterBanner()
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+            form
+        }
+    }
+
+    private var form: some View {
         Form {
             if let p = model.snapshot?.printer {
                 Section("狀態") {
@@ -115,11 +124,6 @@ struct PrinterView: View {
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
-        .safeAreaInset(edge: .top, spacing: 0) {
-            PrinterBanner()
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
-        }
         .task {
             // Refresh while this tab is visible; the job list itself is live.
             while !Task.isCancelled {

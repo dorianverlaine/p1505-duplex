@@ -25,7 +25,7 @@ pub fn main() -> Result<()> {
         bail!("{} has no device-uri", cfg.printer);
     }
 
-    cups.pause(&cfg.printer, "loading firmware")?;
+    cups.pause(&cfg.printer, "正在載入韌體")?;
     let result = upload(&uri);
     let resumed = cups.resume(&cfg.printer);
     match (&result, resumed) {

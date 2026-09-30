@@ -18,6 +18,17 @@ enum PreviewRenderer {
             write(MainView(openSettings: {}).environment(model), to: dir.appending(path: "\(name).png"))
         }
         write(SettingsView().environment(model), to: dir.appending(path: "settings.png"))
+
+        var paused = sampleSnapshot
+        paused.printer?.state = "stopped"
+        paused.printer?.reasons = [Reason(keyword: "paused", text: "列印佇列已暫停", severity: .warning)]
+        paused.printer?.message = "由手動雙面暫停"
+        paused.printer?.blocking = true
+        model.loadPreview(snapshot: paused, details: sampleDetails)
+        for (tab, name) in [(Tab.jobs, "jobs-paused"), (.printer, "printer-paused")] {
+            model.tab = tab
+            write(MainView(openSettings: {}).environment(model), to: dir.appending(path: "\(name).png"))
+        }
         for appearance in [NSAppearance.Name.darkAqua] {
             model.tab = .jobs
             write(MainView(openSettings: {}).environment(model), to: dir.appending(path: "jobs-dark.png"),
@@ -49,7 +60,8 @@ enum PreviewRenderer {
         func side(_ job: Int, _ state: JobState, _ done: Int = 0) -> Side {
             Side(job: job, state: state, sheetsDone: done)
         }
-        let printer = Printer(name: "HP_LaserJet_P1505", state: "processing", reasons: [], message: "",
+        let printer = Printer(name: "HP_LaserJet_P1505", state: "processing", reasons: [],
+                              message: "cfFilterGhostscript: Rendering completed",
                               blocking: false, accepting: true, queued: 1, usbConnected: true,
                               stateChanged: now.addingTimeInterval(-300))
         return Snapshot(printer: printer, cupsError: nil, jobs: [

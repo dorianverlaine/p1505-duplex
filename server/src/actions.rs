@@ -112,8 +112,7 @@ impl Actions<'_> {
     }
 
     pub fn pause_printer(&self) -> Result<()> {
-        self.cups
-            .pause(&self.cfg.printer, "paused from the duplex page")
+        self.cups.pause(&self.cfg.printer, "由手動雙面暫停")
     }
 
     pub fn resume_printer(&self) -> Result<()> {
