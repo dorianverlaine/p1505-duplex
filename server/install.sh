@@ -14,6 +14,10 @@ install -m644 dist/local.convs /etc/cups/local.convs
 [ -e /etc/p1505-duplex.conf ] || install -m644 dist/p1505-duplex.conf /etc/p1505-duplex.conf
 install -m644 dist/p1505-duplex-web.service dist/p1505-firmware.service /etc/systemd/system/
 install -m644 dist/57-p1505-firmware.rules /etc/udev/rules.d/
+# foo2zjs ships its own hotplug firmware loader for the P1505; ours must be
+# the only one (it pauses the queue first), so mask it.
+[ -e /usr/lib/udev/rules.d/85-hplj10xx.rules ] &&
+    ln -sf /dev/null /etc/udev/rules.d/85-hplj10xx.rules
 
 id p1505-duplex >/dev/null 2>&1 ||
     useradd --system --no-create-home --shell /usr/sbin/nologin -g lpadmin p1505-duplex

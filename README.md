@@ -63,6 +63,7 @@ http://<伺服器>/duplex/api/…     JSON API 與即時事件（選單列小程
 ### 需求
 
 - Debian / Ubuntu，CUPS 與 HPLIP，P1505 已能用 `hp:/usb/...` 單面列印
+- 建議把印表機驅動換成 foo2zjs 的 foo2xqx（見下方「印表機驅動」）
 - HPLIP 專有外掛（`hp-plugin`），提供 `hp-firmware` 與 P1505 韌體檔
 - `cups-filters` 的 `Generic-PDF_Printer-PDF.ppd`
 - nginx（或任何能反向代理的網頁伺服器）
@@ -115,6 +116,23 @@ sudo ./install.sh
 | `STATE_DIR` | `/var/spool/p1505-duplex` | 工作紀錄、原始 PDF 與韌體載入紀錄 |
 
 後端每份工作都會重新讀取設定；網頁的設定改了之後要 `systemctl restart p1505-duplex-web`。每份工作會記下送出當時的順序與旋轉設定，補印時沿用，不受之後修改影響。
+
+### 印表機驅動：foo2xqx
+
+P1505 只有 600 dpi 的列印頭，Windows 驅動的「FastRes 1200」是在電腦端先用更高解析度算圖，再讓每個點帶 2 bit 的大小與位置資訊，讓小字、斜線和曲線的邊緣更平滑。HPLIP 的 `hpcups` 只有 600 × 600 單點模式；開源的 [foo2zjs](http://foo2zjs.rkkda.com/) 裡的 `foo2xqx` 驅動支援 1200 × 600，實際印出來的小字與細線明顯比較好，濃淡也適中。
+
+換驅動時保留原本的佇列名稱與 `hp:` 裝置位址（仍由 HPLIP 的後端傳送、由本專案載入韌體），只換 PPD：
+
+```bash
+sudo apt-get install printer-driver-foo2zjs
+sudo cp -p /etc/cups/ppd/HP_LaserJet_P1505.ppd /etc/cups/ppd/HP_LaserJet_P1505.ppd.hpcups
+sudo lpadmin -p HP_LaserJet_P1505 -m foo2zjs:0/ppd/foo2zjs/HP-LaserJet_P1505.ppd \
+    -o PageSize=A4 -o Resolution=1200x600dpi
+```
+
+foo2zjs 附帶一個插上印表機時自己寫入韌體的 udev 規則（`85-hplj10xx.rules`），會和本專案的韌體載入搶裝置；`install.sh` 會用 `/etc/udev/rules.d/` 下的同名空規則把它遮蔽。
+
+foo2xqx 另外有列印濃度（`Density1`–`Density5`，預設 3）與半色調演算法可以調整。要換回 `hpcups`，用 `lpadmin -p HP_LaserJet_P1505 -P` 指回備份的 PPD 即可。
 
 ### 校正背面方向
 
