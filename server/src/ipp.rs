@@ -17,6 +17,7 @@ pub const SOCKET: &str = "/run/cups/cups.sock";
 const PRINT_JOB: u16 = 0x0002;
 const CANCEL_JOB: u16 = 0x0008;
 const GET_JOB_ATTRIBUTES: u16 = 0x0009;
+const GET_JOBS: u16 = 0x000A;
 const GET_PRINTER_ATTRIBUTES: u16 = 0x000B;
 const RELEASE_JOB: u16 = 0x000D;
 const PAUSE_PRINTER: u16 = 0x0010;
@@ -55,15 +56,50 @@ pub struct Attr {
     pub values: Vec<Value>,
 }
 
+/// Attributes of one group (or of a whole response).
+#[derive(Debug, Default, Clone)]
+pub struct Attrs(pub Vec<Attr>);
+
 #[derive(Debug, Default)]
 pub struct Response {
     pub status: u16,
-    pub attrs: Vec<Attr>,
+    /// Every attribute of the response, all groups together.
+    pub attrs: Attrs,
+    /// Groups in order, with their delimiter tag (e.g. one JOB group per job).
+    pub groups: Vec<(u8, Attrs)>,
 }
 
-impl Response {
+impl std::ops::Deref for Response {
+    type Target = Attrs;
+    fn deref(&self) -> &Attrs {
+        &self.attrs
+    }
+}
+
+impl Attrs {
     fn get(&self, name: &str) -> Option<&Attr> {
-        self.attrs.iter().find(|a| a.name == name)
+        self.0.iter().find(|a| a.name == name)
+    }
+
+    pub fn bool(&self, name: &str) -> Option<bool> {
+        match self.get(name)?.values.first()? {
+            Value::Bool(b) => Some(*b),
+            _ => None,
+        }
+    }
+
+    pub fn ints(&self, name: &str) -> Vec<i32> {
+        self.get(name)
+            .map(|a| {
+                a.values
+                    .iter()
+                    .filter_map(|v| match v {
+                        Value::Int(i) => Some(*i),
+                        _ => None,
+                    })
+                    .collect()
+            })
+            .unwrap_or_default()
     }
 
     pub fn int(&self, name: &str) -> Option<i32> {
@@ -174,15 +210,20 @@ pub fn parse(data: &[u8]) -> Result<Response> {
     let _version = r.take(2)?;
     let status = u16::from_be_bytes(r.take(2)?.try_into()?);
     let _request_id = r.take(4)?;
-    let mut attrs: Vec<Attr> = Vec::new();
+    let mut groups: Vec<(u8, Vec<Attr>)> = Vec::new();
     loop {
         let tag = *r.take(1)?.first().unwrap();
         if tag == END {
             break;
         }
         if tag < 0x10 {
-            continue; // group delimiter
+            groups.push((tag, Vec::new()));
+            continue;
         }
+        if groups.is_empty() {
+            bail!("IPP attribute outside any group");
+        }
+        let attrs = &mut groups.last_mut().unwrap().1;
         let name_len = u16::from_be_bytes(r.take(2)?.try_into()?) as usize;
         let name = String::from_utf8_lossy(r.take(name_len)?).into_owned();
         let value_len = u16::from_be_bytes(r.take(2)?.try_into()?) as usize;
@@ -205,7 +246,13 @@ pub fn parse(data: &[u8]) -> Result<Response> {
             }),
         }
     }
-    Ok(Response { status, attrs })
+    let all = groups.iter().flat_map(|(_, a)| a.iter().cloned()).collect();
+    let groups = groups.into_iter().map(|(t, a)| (t, Attrs(a))).collect();
+    Ok(Response {
+        status,
+        attrs: Attrs(all),
+        groups,
+    })
 }
 
 struct Reader<'a> {
@@ -350,10 +397,19 @@ impl Cups {
                     "printer-state",
                     "printer-state-reasons",
                     "printer-state-message",
+                    "printer-state-change-time",
+                    "printer-is-accepting-jobs",
+                    "queued-job-count",
+                    "printer-make-and-model",
+                    "printer-info",
+                    "printer-location",
+                    "marker-names",
+                    "marker-levels",
                     "device-uri",
                 ],
             );
         let resp = self.send(&format!("/printers/{printer}"), &req.finish(), true)?;
+        let text = |name| resp.str(name).unwrap_or("").to_string();
         Ok(PrinterStatus {
             state: resp.int("printer-state").unwrap_or(3),
             reasons: resp
@@ -361,9 +417,66 @@ impl Cups {
                 .into_iter()
                 .filter(|r| r != "none")
                 .collect(),
-            message: resp.str("printer-state-message").unwrap_or("").to_string(),
-            device_uri: resp.str("device-uri").unwrap_or("").to_string(),
+            message: text("printer-state-message"),
+            state_changed: resp.int("printer-state-change-time").unwrap_or(0) as i64,
+            accepting: resp.bool("printer-is-accepting-jobs").unwrap_or(true),
+            queued: resp.int("queued-job-count").unwrap_or(0).max(0) as u32,
+            make_model: text("printer-make-and-model"),
+            info: text("printer-info"),
+            location: text("printer-location"),
+            markers: resp
+                .strs("marker-names")
+                .into_iter()
+                .zip(resp.ints("marker-levels"))
+                .collect(),
+            device_uri: text("device-uri"),
         })
+    }
+
+    /// Jobs on `printer`: the active ones, or the most recent finished ones.
+    pub fn jobs(&self, printer: &str, finished: bool, limit: i32) -> Result<Vec<QueueJob>> {
+        let mut req = Request::new(GET_JOBS);
+        req.attr(URI, "printer-uri", &Self::printer_uri(printer))
+            .attr(NAME, "requesting-user-name", &self.user)
+            .attr(
+                KEYWORD,
+                "which-jobs",
+                if finished {
+                    "completed"
+                } else {
+                    "not-completed"
+                },
+            )
+            .int("limit", limit)
+            .keywords(
+                "requested-attributes",
+                &[
+                    "job-id",
+                    "job-name",
+                    "job-originating-user-name",
+                    "job-state",
+                    "time-at-creation",
+                    "time-at-completed",
+                    "job-media-sheets-completed",
+                ],
+            );
+        let resp = self.send(&format!("/printers/{printer}"), &req.finish(), true)?;
+        Ok(resp
+            .groups
+            .iter()
+            .filter(|(tag, _)| *tag == JOB)
+            .filter_map(|(_, a)| {
+                Some(QueueJob {
+                    id: a.int("job-id")?,
+                    name: a.str("job-name").unwrap_or("").to_string(),
+                    user: a.str("job-originating-user-name").unwrap_or("").to_string(),
+                    state: a.int("job-state").and_then(JobState::from_ipp)?,
+                    created: a.int("time-at-creation").unwrap_or(0) as i64,
+                    completed: a.int("time-at-completed").filter(|t| *t > 0).map(i64::from),
+                    sheets: a.int("job-media-sheets-completed").unwrap_or(0).max(0) as u32,
+                })
+            })
+            .collect())
     }
 
     /// Stop the queue (like cupsdisable -r message).
@@ -389,7 +502,8 @@ pub fn is_not_found(err: &anyhow::Error) -> bool {
         .is_some_and(|e| e.status == STATUS_NOT_FOUND)
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "lowercase")]
 pub enum JobState {
     Pending,
     Held,
@@ -429,14 +543,35 @@ pub struct JobStatus {
     pub sheets_done: u32,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct PrinterStatus {
     /// 3 idle, 4 processing, 5 stopped.
     pub state: i32,
     /// printer-state-reasons without "none".
     pub reasons: Vec<String>,
     pub message: String,
+    /// Unix time of the last state change.
+    pub state_changed: i64,
+    pub accepting: bool,
+    pub queued: u32,
+    pub make_model: String,
+    pub info: String,
+    pub location: String,
+    /// Supply levels (name, percent; negative when unknown).
+    pub markers: Vec<(String, i32)>,
     pub device_uri: String,
+}
+
+/// A job as listed by Get-Jobs.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct QueueJob {
+    pub id: i32,
+    pub name: String,
+    pub user: String,
+    pub state: JobState,
+    pub created: i64,
+    pub completed: Option<i64>,
+    pub sheets: u32,
 }
 
 /// Read one HTTP/1.1 response; handles Content-Length and chunked bodies
@@ -568,6 +703,37 @@ mod tests {
             resp.get("printer-is-accepting-jobs").unwrap().values,
             vec![Value::Bool(true)]
         );
+    }
+
+    #[test]
+    fn keeps_groups_apart() {
+        let mut body = vec![2, 0, 0, 0, 0, 0, 0, 1, OPERATION];
+        let mut r = Request {
+            buf: Vec::new(),
+            group: OPERATION,
+        };
+        r.attr(CHARSET, "attributes-charset", "utf-8");
+        r.buf.push(JOB);
+        r.int("job-id", 7).attr(NAME, "job-name", "a");
+        r.buf.push(JOB);
+        r.int("job-id", 8).attr(NAME, "job-name", "b");
+        body.extend(r.buf);
+        body.push(END);
+        let resp = parse(&body).unwrap();
+        let jobs: Vec<(i32, &str)> = resp
+            .groups
+            .iter()
+            .filter(|(t, _)| *t == JOB)
+            .map(|(_, a)| (a.int("job-id").unwrap(), a.str("job-name").unwrap()))
+            .collect();
+        assert_eq!(jobs, vec![(7, "a"), (8, "b")]);
+        // The flattened view still finds the first occurrence.
+        assert_eq!(resp.int("job-id"), Some(7));
+    }
+
+    #[test]
+    fn attribute_before_any_group_is_an_error() {
+        assert!(parse(&[2, 0, 0, 0, 0, 0, 0, 1, KEYWORD, 0, 1, b'a', 0, 1, b'b', END]).is_err());
     }
 
     #[test]

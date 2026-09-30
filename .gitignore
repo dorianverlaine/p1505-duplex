@@ -1,2 +1,5 @@
-/target
+/server/target
+/macos/.build
+/macos/build
 *.pdf
+.DS_Store

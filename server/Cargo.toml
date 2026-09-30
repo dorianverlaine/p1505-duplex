@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 description = "Manual duplex (and firmware auto-load) for the HP LaserJet P1505 on a CUPS server"
 license = "MIT"
-repository = "https://github.com/dorianverlaine/p1505-duplex-rs"
+repository = "https://github.com/dorianverlaine/p1505-duplex"
 
 [dependencies]
 anyhow = "1.0.104"

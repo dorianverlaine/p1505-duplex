@@ -10,6 +10,10 @@ pub const PATH: &str = "/etc/p1505-duplex.conf";
 pub struct Config {
     /// CUPS queue of the real, single-sided printer.
     pub printer: String,
+    /// The manual duplex queue (for test prints and its status).
+    pub duplex_queue: String,
+    /// USB vendor:product of the printer, to tell whether it is plugged in.
+    pub usb_id: String,
     /// Order of the back sides.
     pub even_order: Order,
     /// Extra rotation of the back sides, 0 or 180.
@@ -24,6 +28,8 @@ impl Default for Config {
     fn default() -> Self {
         Config {
             printer: "HP_LaserJet_P1505".into(),
+            duplex_queue: "P1505_Duplex".into(),
+            usb_id: "03f0:3f17".into(),
             even_order: Order::Reverse,
             even_rotate: 180,
             listen: "127.0.0.1:8631".into(),
@@ -54,6 +60,8 @@ impl Config {
             let value = value.trim();
             match key.trim() {
                 "PRINTER" => c.printer = value.into(),
+                "DUPLEX_QUEUE" => c.duplex_queue = value.into(),
+                "USB_ID" => c.usb_id = value.into(),
                 "EVEN_ORDER" => {
                     c.even_order = value
                         .parse()

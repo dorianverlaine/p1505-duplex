@@ -6,6 +6,7 @@
 //! - `p1505-duplex web`: the "continue" page;
 //! - `p1505-duplex firmware`: upload the printer firmware with the queue paused.
 
+mod actions;
 mod backend;
 mod config;
 mod firmware;
@@ -14,6 +15,7 @@ mod jobs;
 mod pdf;
 mod plan;
 mod state;
+mod status;
 mod web;
 
 use std::path::Path;

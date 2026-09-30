@@ -8,6 +8,8 @@
 
 use crate::config::Config;
 use crate::ipp::Cups;
+use crate::state;
+use crate::status::{FIRMWARE_FILE, FirmwareRecord};
 use anyhow::{Context, Result, bail};
 use std::process::Command;
 use std::thread::sleep;
@@ -30,6 +32,20 @@ pub fn main() -> Result<()> {
         (_, Err(e)) => eprintln!("could not resume {}: {e:#}", cfg.printer),
         (Ok(n), Ok(())) => eprintln!("firmware loaded (attempt {n})"),
         (Err(_), Ok(())) => {}
+    }
+
+    // Let the status page show when the firmware was last loaded.
+    let record = FirmwareRecord {
+        time: state::now(),
+        ok: result.is_ok(),
+        attempts: *result.as_ref().unwrap_or(&ATTEMPTS),
+        error: result.as_ref().err().map(|e| format!("{e:#}")),
+    };
+    // SAFETY: umask only changes this process's file creation mask.
+    unsafe { libc::umask(0o002) };
+    let path = cfg.state_dir.join(FIRMWARE_FILE);
+    if let Err(e) = std::fs::write(&path, serde_json::to_vec(&record)?) {
+        eprintln!("writing {}: {e}", path.display());
     }
     result.map(drop)
 }
