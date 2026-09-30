@@ -1,0 +1,5 @@
+# macOS "Generic PostScript Printer" sends application/vnd.cups-postscript,
+# which has no vector route to PDF, so CUPS falls back to pstotiff+imagetopdf
+# and flattens the whole job into a single page image. Let Ghostscript
+# convert it to PDF directly.
+application/vnd.cups-postscript	application/pdf	0	gstopdf

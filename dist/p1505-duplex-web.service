@@ -1,0 +1,17 @@
+[Unit]
+Description=P1505 manual duplex continue page
+After=cups.service
+
+[Service]
+User=p1505-duplex
+Group=lpadmin
+ExecStart=/usr/local/bin/p1505-duplex web
+Restart=on-failure
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/spool/p1505-duplex
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
