@@ -169,9 +169,20 @@ journalctl -u p1505-firmware
 
 ## 在 Mac 上加入印表機
 
-「系統設定 → 印表機與掃描器 → 加入印表機」，選「P1505 手動雙面 @ 伺服器名稱」，「使用」選 **Generic PostScript Printer**。不要選 HP 的驅動，也不要在 Mac 端開啟雙面，拆頁都在伺服器上做。
+建議用 IPP Everywhere（driverless）加入，Mac 會把 PDF 原封不動送到伺服器：
 
-macOS 的 Generic PostScript 驅動送出的格式是 `application/vnd.cups-postscript`，CUPS 預設沒有把它直接轉成 PDF 的規則，會改走 `pstotiff → imagetopdf`，把整份文件壓成一頁圖片。`server/dist/local.convs` 補上用 Ghostscript 直接轉 PDF 的規則。
+```bash
+lpadmin -p P1505_Duplex -E -v ipp://<伺服器>.local/printers/P1505_Duplex \
+    -m everywhere -D "P1505 手動雙面" -o PageSize=A4
+lpadmin -p HP_LaserJet_P1505 -E -v ipp://<伺服器>.local/printers/HP_LaserJet_P1505 \
+    -m everywhere -D "HP LaserJet P1505" -o PageSize=A4
+```
+
+不需要 sudo（管理員帳號即可）。列印對話框裡的「雙面」保持關閉，拆頁都在伺服器上做。
+
+**不要用「Generic PostScript Printer」。** 那樣 Mac 會先把 PDF 轉成 PostScript（實測一份 3 MB、106 頁的教科書變成 85 MB），伺服器再用 Ghostscript 單核心、從頭到尾地轉回 PDF；在較舊的 CPU 上，還沒開始印就要花上半小時以上。改用 IPP Everywhere 後，同樣的流程在一秒內就完成拆頁。
+
+如果還是有用戶端送 PostScript 過來：它送出的格式是 `application/vnd.cups-postscript`，CUPS 預設沒有把它直接轉成 PDF 的規則，會改走 `pstotiff → imagetopdf`，把整份文件壓成一頁圖片。`server/dist/local.convs` 補上用 Ghostscript 直接轉 PDF 的規則。
 
 ## 選單列小程式（macOS）
 
