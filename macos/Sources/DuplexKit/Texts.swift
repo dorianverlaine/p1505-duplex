@@ -3,11 +3,12 @@ import Foundation
 // User-facing wording, kept in line with the web page.
 
 extension JobState {
-    public func text(sheetsDone: Int, sheets: Int) -> String {
+    /// No page progress: CUPS' sheet counters depend on the driver (foomatic
+    /// drivers count every page twice), so they are not shown.
+    public var text: String {
         switch self {
         case .pending: "排隊中"
         case .held: "等待繼續"
-        case .processing where sheetsDone > 0: "列印中 · 已印 \(sheetsDone)/\(sheets) 張"
         case .processing: "列印中"
         case .stopped: "已停止"
         case .canceled: "已取消"
@@ -19,7 +20,7 @@ extension JobState {
 }
 
 extension Side {
-    public func text(sheets: Int) -> String { state.text(sheetsDone: sheetsDone, sheets: sheets) }
+    public var text: String { state.text }
 }
 
 extension Stage {

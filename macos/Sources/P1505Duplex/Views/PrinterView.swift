@@ -75,7 +75,7 @@ struct PrinterView: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(job.name).lineLimit(1)
-                                Text("\(job.user) · \(job.state.text(sheetsDone: job.sheets, sheets: job.sheets))")
+                                Text("\(job.user) · \(job.state.text)")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }

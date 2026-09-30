@@ -320,11 +320,8 @@ fn index(snap: &Snapshot) -> String {
     page("P1505 手動雙面", &out)
 }
 
-fn side_text(side: &Option<crate::status::Side>, sheets: u32) -> String {
-    match side {
-        Some(s) => s.state.text(s.sheets_done, sheets),
-        None => "狀態不明".into(),
-    }
+fn side_text(side: &Option<crate::status::Side>) -> &'static str {
+    side.as_ref().map_or("狀態不明", |s| s.state.text())
 }
 
 fn card(job: &DuplexJob) -> String {
@@ -340,8 +337,8 @@ fn card(job: &DuplexJob) -> String {
         sheets,
         esc(&job.user),
         local_time(job.created),
-        side_text(&job.front, sheets),
-        side_text(&job.back, sheets),
+        side_text(&job.front),
+        side_text(&job.back),
     );
 
     let base = format!("jobs/{}/", job.id);

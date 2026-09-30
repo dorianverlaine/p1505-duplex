@@ -8,23 +8,24 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 /// Human-readable job state for the page.
+///
+/// No page progress: CUPS' sheet counters depend on the driver's filter
+/// chain (with foomatic drivers two filters each report every page), so
+/// they cannot be shown as "N of M".
 pub trait JobStateText {
-    fn text(self, sheets_done: u32, sheets: u32) -> String;
+    fn text(self) -> &'static str;
 }
 
 impl JobStateText for JobState {
-    fn text(self, sheets_done: u32, sheets: u32) -> String {
+    fn text(self) -> &'static str {
         match self {
-            JobState::Pending => "排隊中".into(),
-            JobState::Held => "等待繼續".into(),
-            JobState::Processing if sheets_done > 0 => {
-                format!("列印中 · 已印 {sheets_done}/{sheets} 張")
-            }
-            JobState::Processing => "列印中".into(),
-            JobState::Stopped => "已停止".into(),
-            JobState::Canceled => "已取消".into(),
-            JobState::Aborted => "失敗".into(),
-            JobState::Completed => "已完成".into(),
+            JobState::Pending => "排隊中",
+            JobState::Held => "等待繼續",
+            JobState::Processing => "列印中",
+            JobState::Stopped => "已停止",
+            JobState::Canceled => "已取消",
+            JobState::Aborted => "失敗",
+            JobState::Completed => "已完成",
         }
     }
 }

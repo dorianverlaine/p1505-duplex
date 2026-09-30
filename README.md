@@ -260,6 +260,8 @@ cd macos && swift build && .build/debug/P1505Duplex --render-previews /tmp/previ
 
 `stage` 的值：`front_printing`、`front_failed`、`blocked`、`ready_to_flip`、`back_printing`、`back_failed`、`done`、`unknown`。
 
+`sheets_done`（工作）與 `sheets`（列印紀錄）是 CUPS 回報的原始計數，準不準取決於驅動的處理鏈：foomatic 驅動（例如 foo2xqx）裡有兩個濾鏡各自回報同一頁，數字會是實際的兩倍。網頁與選單列小程式因此不顯示這些數字。
+
 ## 限制
 
 P1505 不會把卡紙、缺紙、機蓋沒關等狀態回報給 CUPS：

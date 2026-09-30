@@ -144,7 +144,7 @@ func snapshot(_ jobs: [DuplexJob], blocking: Bool = false) -> Snapshot {
 }
 
 @Test func texts() {
-    #expect(JobState.processing.text(sheetsDone: 2, sheets: 3) == "列印中 · 已印 2/3 張")
+    #expect(JobState.processing.text == "列印中")
     #expect(Stage.readyToFlip.hint(sheets: 3) == "正面已印完：取出這 3 張紙，放回紙匣後按「繼續」。")
     #expect(Stage.backPrinting.hint(sheets: 3) == nil)
 }

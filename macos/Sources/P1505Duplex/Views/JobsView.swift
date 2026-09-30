@@ -47,11 +47,11 @@ struct JobCard: View {
             Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 3) {
                 GridRow {
                     Text("正面").foregroundStyle(.secondary)
-                    Text(job.front?.text(sheets: job.sheets) ?? "狀態不明")
+                    Text(job.front?.text ?? "狀態不明")
                 }
                 GridRow {
                     Text("背面").foregroundStyle(.secondary)
-                    Text(job.back?.text(sheets: job.sheets) ?? "狀態不明")
+                    Text(job.back?.text ?? "狀態不明")
                 }
             }
             .font(.callout)
