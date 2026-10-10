@@ -6,7 +6,7 @@ public struct APIError: LocalizedError, Sendable {
 }
 
 /// Talks to the server's /api endpoints. `base` is the page URL, e.g.
-/// http://athlon-server.local/duplex/.
+/// http://octopus-server.local/duplex/.
 public struct APIClient: Sendable {
     public var base: URL
     let session: URLSession

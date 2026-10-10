@@ -212,7 +212,7 @@ macos/build.sh --install
 
 ### 設定
 
-- **列印伺服器網址**：預設 `http://athlon-server.local/duplex/`。App 允許連到 `.local`、IP 位址，以及 `.lan`、`.home.arpa` 結尾的 HTTP 伺服器。
+- **列印伺服器網址**：預設 `http://octopus-server.local/duplex/`。App 允許連到 `.local`、IP 位址，以及 `.lan`、`.home.arpa` 結尾的 HTTP 伺服器。
 - **只顯示我送出的工作**：以 Mac 帳號名稱比對 CUPS 記錄的送件人。家裡有其他人也在用時，只會收到自己的通知。
 - **通知**：四種通知可以個別開關。
 - **登入時自動打開**。

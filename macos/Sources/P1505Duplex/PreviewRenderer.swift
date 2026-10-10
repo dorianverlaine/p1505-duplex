@@ -82,7 +82,7 @@ enum PreviewRenderer {
         return PrinterDetails(
             printer: printer, cupsError: nil,
             makeModel: "HP LaserJet p1505, hpcups 3.24.4, requires proprietary plugin",
-            info: "HP LaserJet P1505", location: "Athlon Server",
+            info: "HP LaserJet P1505", location: "Octopus Server",
             deviceUri: "hp:/usb/HP_LaserJet_P1505?serial=XXXXXXX",
             markers: [], firmware: FirmwareRecord(time: now.addingTimeInterval(-7200), ok: true, attempts: 1, error: nil),
             duplexQueue: printer,

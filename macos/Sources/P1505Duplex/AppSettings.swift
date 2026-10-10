@@ -7,7 +7,7 @@ import ServiceManagement
 @MainActor
 @Observable
 final class AppSettings {
-    static let defaultServer = "http://athlon-server.local/duplex/"
+    static let defaultServer = "http://octopus-server.local/duplex/"
 
     private let defaults = UserDefaults.standard
 
